@@ -3,7 +3,7 @@ package core.exception;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-public class UrlShortenerException extends Exception {
+public class UrlShortenerException extends RuntimeException {
 
   public final ErrorCode errorCode;
 
@@ -12,12 +12,12 @@ public class UrlShortenerException extends Exception {
   }
 
   public UrlShortenerException(ErrorCode errorCode, String message, Throwable cause) {
-    super(message, cause);
+    super(message, cause, false, false);
     this.errorCode = errorCode;
   }
 
   public UrlShortenerException(ErrorCode errorCode, String message) {
-    super(message);
+    super(message, null, false, false);
     this.errorCode = errorCode;
   }
 

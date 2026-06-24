@@ -1,6 +1,5 @@
 package core.repository;
 
-import core.exception.UrlShortenerException;
 import core.models.UrlShortenerRecord;
 import core.storage.Storage;
 import java.util.Optional;
@@ -28,7 +27,7 @@ public class UrlShortenerRepository {
     return recordOptional;
   }
 
-  public void save(UrlShortenerRecord record) throws UrlShortenerException {
+  public void save(UrlShortenerRecord record) {
     storage.put(record);
   }
 

@@ -28,7 +28,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
   }
 
   @Override
-  public UrlShortenerResponse shortenUrl(@NotNull UrlShortenerRequest request) throws UrlShortenerException {
+  public UrlShortenerResponse shortenUrl(@NotNull UrlShortenerRequest request) {
     var url = request.getUrl();
     url = UrlSanitizer.sanitizeUrl(url);
     StringBuilder salt = new StringBuilder();
@@ -48,7 +48,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
           repository.save(record);
           return new UrlShortenerResponse(encodedUrl, UrlType.SHORT, record.getExpiresAt());
         } catch (UrlShortenerException e) {
-          if(e.getErrorCode() == null || !e.getErrorCode().equals(ErrorCode.HASH_ALREADY_EXISTS)) {
+          if(e.getErrorCode() != ErrorCode.HASH_ALREADY_EXISTS) {
             throw e;
           }
         }

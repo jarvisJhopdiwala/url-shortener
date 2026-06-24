@@ -4,10 +4,8 @@ import core.exception.ErrorCode;
 import core.exception.UrlShortenerException;
 import core.models.UrlShortenerRecord;
 import core.storage.Storage;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -32,11 +30,11 @@ public class HashMapStorage implements Storage {
   }
 
   private int getSegmentIndex(@NotNull String key) {
-    return Math.abs(key.hashCode() % NUM_SEGMENTS);
+    return key.hashCode() & (NUM_SEGMENTS - 1);
   }
 
   @Override
-  public void put(@NotNull UrlShortenerRecord record) throws UrlShortenerException {
+  public void put(@NotNull UrlShortenerRecord record) {
     int index = getSegmentIndex(record.getShortUrl());
     locks[index].writeLock().lock();
     try {
@@ -63,7 +61,7 @@ public class HashMapStorage implements Storage {
   @Override
   public long deleteAllEntriesIfExpired() {
     long deletedCount = 0;
-    long now = Instant.now().toEpochMilli();
+    long now = System.currentTimeMillis();
     for(int i = 0; i < NUM_SEGMENTS; i++) {
       locks[i].writeLock().lock();
       try {
