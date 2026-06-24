@@ -1,5 +1,6 @@
 package core;
 
+import core.exception.UrlShortenerException;
 import core.models.UrlShortenerRequest;
 import core.models.UrlShortenerResponse;
 import core.repository.UrlShortenerRepository;
@@ -8,14 +9,13 @@ import core.services.UrlShortenerService;
 import core.services.impl.UrlShortenerServiceImpl;
 import core.storage.Storage;
 import core.storage.local.HashMapStorage;
-import java.util.HashMap;
 import java.util.Optional;
 
 public class Main {
 
-  public static void main(String... args) {
+  public static void main(String... args) throws UrlShortenerException {
 
-    final Storage storage = new HashMapStorage(new HashMap<>());
+    final Storage storage = new HashMapStorage();
     final UrlShortenerRepository repository = new UrlShortenerRepository(storage);
     final UrlShortenerService service = new UrlShortenerServiceImpl(repository);
 

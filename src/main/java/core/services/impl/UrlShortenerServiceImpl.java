@@ -1,5 +1,7 @@
 package core.services.impl;
 
+import core.exception.ErrorCode;
+import core.exception.UrlShortenerException;
 import core.models.UrlShortenerRecord;
 import core.models.UrlShortenerRequest;
 import core.models.UrlShortenerResponse;
@@ -17,6 +19,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
   private static final String BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   private static final int SHORT_URL_LENGTH = 7;
   private static final int MAX_HASH_BYTES = 5;
+  private static final int MAX_RETRIES = 5;
 
   private final UrlShortenerRepository repository;
 
@@ -25,12 +28,12 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
   }
 
   @Override
-  public UrlShortenerResponse shortenUrl(@NotNull UrlShortenerRequest request) {
-    String url = request.getUrl();
+  public UrlShortenerResponse shortenUrl(@NotNull UrlShortenerRequest request) throws UrlShortenerException {
+    var url = request.getUrl();
     url = UrlSanitizer.sanitizeUrl(url);
-
     StringBuilder salt = new StringBuilder();
-    while (true) {
+    int attempts = 0;
+    while (attempts < MAX_RETRIES) {
       String toHashUrl = url + salt;
       byte[] hashBytes = generateMd5Hash(toHashUrl);
       long hashLong = convertBytesToLong(hashBytes);
@@ -41,15 +44,23 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
         final long currentTimeMillis = System.currentTimeMillis();
         UrlShortenerRecord record = new UrlShortenerRecord(url, encodedUrl, currentTimeMillis,
             currentTimeMillis + request.getTtlInSeconds() * 1000L);
-        repository.save(record);
-        return new UrlShortenerResponse(encodedUrl, UrlType.SHORT, record.getExpiresAt());
+        try {
+          repository.save(record);
+          return new UrlShortenerResponse(encodedUrl, UrlType.SHORT, record.getExpiresAt());
+        } catch (UrlShortenerException e) {
+          if(e.getErrorCode() == null || !e.getErrorCode().equals(ErrorCode.HASH_ALREADY_EXISTS)) {
+            throw e;
+          }
+        }
       }
-      if (existingRecordOpt.get().getOriginalUrl().equals(url)) {
-        return new UrlShortenerResponse(encodedUrl, UrlType.SHORT,
-            existingRecordOpt.get().getExpiresAt());
+      else if (existingRecordOpt.get().getOriginalUrl().equals(url)) {
+        return new UrlShortenerResponse(encodedUrl, UrlType.SHORT, existingRecordOpt.get().getExpiresAt());
       }
       salt.append("[RETRY]");
+      attempts++;
     }
+    throw UrlShortenerException.builder().errorCode(ErrorCode.HASH_NOT_GENERATED)
+        .message("Failed to generate short URL after " + MAX_RETRIES + " attempts").build();
   }
 
   @Override
